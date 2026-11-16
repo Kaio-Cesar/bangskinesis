@@ -41,11 +41,14 @@ Store listings aren't available yet. Until then, install from the
 2. Open `chrome://extensions`, turn on **Developer mode**.
 3. Click **Load unpacked** and pick the unzipped folder.
 
-**Firefox** (128 or newer)
+**Firefox** (140 or newer)
 
-1. Download `bangskinesis-<version>-firefox.zip`.
-2. Open `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on…**, and pick the zip.
-   Temporary add-ons are removed when Firefox restarts; a signed build will follow.
+1. Open the [latest release](../../releases/latest) in Firefox and click
+   `bangskinesis-<version>-firefox.xpi`.
+2. Confirm the install prompt.
+
+The `.xpi` is signed by Mozilla, so it installs in regular Firefox, and Firefox keeps it updated
+automatically from this repository's releases.
 
 ## Usage
 
@@ -130,8 +133,35 @@ scripts/                    bang snapshot download, icon generator
 tests/  e2e/                unit and end-to-end tests
 ```
 
-CI builds, tests and packages every push. Pushing a `v*` tag that matches the `package.json`
-version publishes a GitHub release with the Chrome, Firefox and sources zips.
+CI builds, tests, lints and packages every push.
+
+### Releasing
+
+1. Bump `version` in `package.json` and commit.
+2. Push a matching tag: `git tag v0.2.0 && git push origin v0.2.0`.
+
+The release job has Mozilla sign the tested Firefox build on AMO's **unlisted** channel
+(self-distribution: not listed on addons.mozilla.org), then publishes a GitHub release with:
+
+| File | Purpose |
+| --- | --- |
+| `bangskinesis-<version>-chrome.zip` | Chrome / Chromium build |
+| `bangskinesis-<version>-firefox.xpi` | Signed Firefox add-on |
+| `bangskinesis-<version>-sources.zip` | Source code, as submitted to Mozilla |
+| `updates.json` | Firefox update manifest (the add-on's `update_url` points at the latest release's copy) |
+
+Signing needs two repository secrets, taken from
+[AMO → Developer Hub → Manage API Keys](https://addons.mozilla.org/developers/addon/api/key/):
+
+| Secret | Value |
+| --- | --- |
+| `AMO_JWT_ISSUER` | JWT issuer |
+| `AMO_JWT_SECRET` | JWT secret |
+
+To sign locally instead: `bun run zip:firefox`, then
+`WEB_EXT_API_KEY=… WEB_EXT_API_SECRET=… bun run sign:firefox`.
+
+The Firefox add-on ID `bangskinesis@kcesar.dev` is permanent once signed; don't change it.
 
 ## Credits
 

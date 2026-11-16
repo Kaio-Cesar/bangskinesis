@@ -1,6 +1,9 @@
 import { defineConfig } from 'wxt';
 import { ALL_ENGINE_HOSTS } from './lib/engines';
 
+export const GECKO_ID = 'bangskinesis@kcesar.dev';
+export const REPO = 'Kaio-Cesar/bangskinesis';
+
 export default defineConfig({
   manifestVersion: 3,
   manifest: ({ browser }) => ({
@@ -17,10 +20,15 @@ export default defineConfig({
     ...(browser === 'firefox' && {
       browser_specific_settings: {
         gecko: {
-          id: 'bangskinesis@extension',
-          strict_min_version: '128.0',
+          // Permanent once signed by AMO: never change it.
+          id: GECKO_ID,
+          // Self-distributed (unlisted) builds update from the latest GitHub release.
+          update_url: `https://github.com/${REPO}/releases/latest/download/updates.json`,
+          // 140 (ESR) is the first release supporting data_collection_permissions.
+          strict_min_version: '140.0',
           data_collection_permissions: { required: ['none'] },
         },
+        gecko_android: { strict_min_version: '142.0' },
       },
     }),
   }),
