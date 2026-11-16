@@ -1,4 +1,4 @@
-import { browser } from 'wxt/browser';
+import { browser, type PublicPath } from 'wxt/browser';
 import { BANGS_URL, indexBangs, parseBangs, type Bang, type RawBang } from './bangs';
 import { getAllBangs, getMeta, replaceAll, setMeta, type Meta } from './store';
 
@@ -7,7 +7,9 @@ const DAY = 24 * 60 * 60 * 1000;
 /** First run: seed the cache from the snapshot bundled with the extension. */
 export async function ensureSeeded(): Promise<void> {
   if (await getMeta()) return;
-  const res = await fetch(browser.runtime.getURL('/bangs.snapshot.json'));
+  // The snapshot is generated at build time (gitignored), so it may be missing
+  // from WXT's typed public paths when typechecking a fresh checkout.
+  const res = await fetch(browser.runtime.getURL('/bangs.snapshot.json' as PublicPath));
   const list = (await res.json()) as RawBang[];
   await replaceAll(indexBangs(list), { etag: null, updatedAt: Date.now(), checkedAt: 0, source: 'snapshot' });
   invalidateIndex();
