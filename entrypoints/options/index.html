@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="manifest.open_in_tab" content="true" />
+    <title>BangsKinesis settings</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1><span class="logo">!</span> BangsKinesis</h1>
+        <p class="lede">
+          Type <kbd>!dev react</kbd> (or <kbd>react !dev</kbd>) in the address bar as a normal search and
+          you'll land on the target site, whatever your default search engine. For a live preview, type
+          <kbd>!</kbd> then <kbd>Space</kbd> to enter keyword mode.
+        </p>
+      </header>
+
+      <section>
+        <h2>Try a bang</h2>
+        <input id="try" type="text" placeholder="!yt lofi beats" autocomplete="off" spellcheck="false" />
+        <div id="try-result" class="result" hidden>
+          <span id="try-pill" class="pill"></span>
+          <a id="try-url" target="_blank" rel="noreferrer"></a>
+        </div>
+      </section>
+
+      <section>
+        <h2>Bang collection</h2>
+        <dl id="meta"></dl>
+        <div class="row">
+          <button id="refresh" type="button">Refresh now</button>
+          <span id="refresh-status" class="muted" role="status"></span>
+        </div>
+        <p class="muted small">
+          Source: <code>services.helium.imput.net/bangs.json</code>, cached locally and checked every few
+          hours. Lookups never hit the network.
+        </p>
+      </section>
+
+      <section>
+        <h2>Intercepted search engines</h2>
+        <p class="muted small">
+          Searches with a bang on these engines are redirected before the engine is contacted.
+          DuckDuckGo and Kagi are skipped because they support bangs natively.
+        </p>
+        <div id="perm-warning" class="warning" hidden>
+          Host permissions are missing, so redirects can't happen.
+          <button id="grant" type="button">Grant access</button>
+        </div>
+        <ul id="engines" class="engines"></ul>
+      </section>
+    </main>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

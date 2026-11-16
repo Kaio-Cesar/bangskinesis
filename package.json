@@ -1,0 +1,27 @@
+{
+  "name": "bangskinesis",
+  "description": "DuckDuckGo-style !bangs for any search engine",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "snapshot": "bun scripts/fetch-bangs.ts",
+    "dev": "wxt",
+    "dev:firefox": "wxt -b firefox",
+    "build": "bun run snapshot && wxt build",
+    "build:firefox": "bun run snapshot && wxt build -b firefox --mv3",
+    "zip": "bun run snapshot && wxt zip",
+    "zip:firefox": "bun run snapshot && wxt zip -b firefox --mv3",
+    "compile": "tsc --noEmit",
+    "test": "bun test",
+    "e2e": "bun e2e/chrome.ts",
+    "e2e:firefox": "bun e2e/firefox.ts",
+    "postinstall": "wxt prepare"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.4",
+    "playwright-core": "1.52.0",
+    "typescript": "^7.0.2",
+    "wxt": "^0.21.5"
+  }
+}
