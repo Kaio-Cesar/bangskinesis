@@ -18,8 +18,28 @@ const profile = mkdtempSync(join(tmpdir(), 'bangskinesis-e2e-'));
 
 const ctx = await chromium.launchPersistentContext(profile, {
   headless: false,
-  args: [`--disable-extensions-except=${ext}`, `--load-extension=${ext}`, '--headless=new'],
+  // Debugging port: a browser-level CDP connection for the incognito checks.
+  args: [`--disable-extensions-except=${ext}`, `--load-extension=${ext}`, '--headless=new', '--remote-debugging-port=0'],
 });
+
+/** Browser-level CDP over the debugging port Chromium wrote to DevToolsActivePort. */
+async function browserCdp(profileDir: string) {
+  const [port, path] = (await Bun.file(join(profileDir, 'DevToolsActivePort')).text()).trim().split('\n');
+  const ws = new WebSocket(`ws://127.0.0.1:${port}${path}`);
+  await new Promise((res, rej) => ((ws.onopen = res), (ws.onerror = rej)));
+  let nextId = 1;
+  const pending = new Map<number, (m: any) => void>();
+  ws.onmessage = (e) => {
+    const m = JSON.parse(String(e.data));
+    pending.get(m.id)?.(m);
+  };
+  return (method: string, params: object = {}) =>
+    new Promise<any>((res, rej) => {
+      const id = nextId++;
+      pending.set(id, (m) => (m.error ? rej(new Error(`${method}: ${m.error.message}`)) : res(m.result)));
+      ws.send(JSON.stringify({ id, method, params }));
+    });
+}
 
 let failures = 0;
 const check = (name: string, ok: boolean, detail = '') => {
@@ -95,6 +115,44 @@ try {
   // The install handler already downloaded the file, so this must be a 304.
   check('manual refresh is a conditional 304', status === 'Already up to date.', status ?? '');
   if (process.env.SCREENSHOT) await opts.screenshot({ path: process.env.SCREENSHOT, fullPage: true });
+
+  // Incognito: same as turning on "Allow in Incognito" on chrome://extensions
+  // (developer mode first, or Chrome disables the reloaded unpacked extension).
+  const admin = await ctx.newPage();
+  await admin.goto('chrome://extensions/');
+  await admin.evaluate(() => chrome.developerPrivate.updateProfileConfiguration({ inDeveloperMode: true }));
+  await admin.evaluate((id) => chrome.developerPrivate.updateExtensionConfiguration({ extensionId: id, incognitoAccess: true }), id);
+  await Bun.sleep(2000); // the extension reloads
+  const driver = await ctx.newPage();
+  for (let i = 0; i < 20; i++) {
+    try {
+      await driver.goto(`chrome-extension://${id}/options.html`);
+      break;
+    } catch {
+      await Bun.sleep(500);
+    }
+  }
+  check('allowed in incognito', await driver.evaluate(() => chrome.extension.isAllowedIncognitoAccess()));
+
+  // Open the searches in one off-the-record (incognito) browser context over
+  // CDP (in split mode the regular extension instance can't open incognito
+  // windows itself) and read the final URL from the target list. The first
+  // search pays for seeding the session's empty cache; the rest are warm.
+  const cdp = await browserCdp(profile);
+  const { browserContextId } = await cdp('Target.createBrowserContext');
+  for (const [from, ok] of cases.slice(0, 4)) {
+    const t0 = performance.now();
+    const { targetId } = await cdp('Target.createTarget', { url: from, browserContextId, newWindow: true });
+    let url = '';
+    for (let i = 0; i < 250 && !ok(url); i++) {
+      await Bun.sleep(20);
+      const { targetInfos } = await cdp('Target.getTargets');
+      url = targetInfos.find((t: any) => t.targetId === targetId)?.url ?? url;
+    }
+    check(`incognito: ${from}`, ok(url), `-> ${url} in ~${Math.round(performance.now() - t0)}ms`);
+    await cdp('Target.closeTarget', { targetId });
+  }
+  await cdp('Target.disposeBrowserContext', { browserContextId });
 } finally {
   await ctx.close();
   rmSync(profile, { recursive: true, force: true });

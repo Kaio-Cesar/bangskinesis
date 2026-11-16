@@ -50,6 +50,10 @@ Store listings aren't available yet. Until then, install from the
 The `.xpi` is signed by Mozilla, so it installs in regular Firefox, and Firefox keeps it updated
 automatically from this repository's releases.
 
+**Private / Incognito windows:** both browsers keep extensions off in private windows until you
+allow them. In Chrome, open the extension's **Details** and turn on **Allow in Incognito**; in
+Firefox, open it in `about:addons` and set **Run in Private Windows** to **Allow**.
+
 ## Usage
 
 | You type in the address bar | You land on |

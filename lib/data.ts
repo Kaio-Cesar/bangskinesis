@@ -4,14 +4,18 @@ import { getAllBangs, getMeta, replaceAll, setMeta, type Meta } from './store';
 
 const DAY = 24 * 60 * 60 * 1000;
 
-/** First run: seed the cache from the snapshot bundled with the extension. */
-export async function ensureSeeded(): Promise<void> {
-  if (await getMeta()) return;
+/** The collection bundled with the extension at build time. */
+export async function loadSnapshot(): Promise<Map<string, Bang>> {
   // The snapshot is generated at build time (gitignored), so it may be missing
   // from WXT's typed public paths when typechecking a fresh checkout.
   const res = await fetch(browser.runtime.getURL('/bangs.snapshot.json' as PublicPath));
-  const list = (await res.json()) as RawBang[];
-  await replaceAll(indexBangs(list), { etag: null, updatedAt: Date.now(), checkedAt: 0, source: 'snapshot' });
+  return indexBangs((await res.json()) as RawBang[]);
+}
+
+/** First run: seed the cache from the snapshot bundled with the extension. */
+export async function ensureSeeded(): Promise<void> {
+  if (await getMeta()) return;
+  await replaceAll(await loadSnapshot(), { etag: null, updatedAt: Date.now(), checkedAt: 0, source: 'snapshot' });
   invalidateIndex();
 }
 
@@ -71,8 +75,15 @@ export function invalidateIndex() {
 
 export function getIndex(): Promise<BangIndex> {
   index ??= (async () => {
-    await ensureSeeded();
-    const map = await getAllBangs();
+    let map: Map<string, Bang>;
+    try {
+      await ensureSeeded();
+      map = await getAllBangs();
+    } catch {
+      // No IndexedDB (Firefox in permanent private browsing): keep the
+      // bundled snapshot in memory instead.
+      map = await loadSnapshot();
+    }
     return { map, sorted: [...map.keys()].sort() };
   })().catch((err) => {
     index = undefined;

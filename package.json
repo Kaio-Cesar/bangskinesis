@@ -1,7 +1,7 @@
 {
   "name": "bangskinesis",
   "description": "DuckDuckGo-style !bangs for any search engine",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "type": "module",
   "scripts": {
@@ -17,7 +17,7 @@
     "compile": "tsc --noEmit",
     "test": "bun test",
     "e2e": "bun e2e/chrome.ts",
-    "e2e:firefox": "bun e2e/firefox.ts",
+    "e2e:firefox": "bun e2e/firefox.ts && PRIVATE=window bun e2e/firefox.ts && PRIVATE=always bun e2e/firefox.ts",
     "postinstall": "wxt prepare"
   },
   "devDependencies": {

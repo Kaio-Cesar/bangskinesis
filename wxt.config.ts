@@ -17,6 +17,10 @@ export default defineConfig({
       { resources: ['redirect.html'], matches: ['<all_urls>'] },
     ],
     icons: { 16: 'icon/16.png', 32: 'icon/32.png', 48: 'icon/48.png', 128: 'icon/128.png' },
+    // Chrome: in the default "spanning" mode, extension pages can't load in
+    // incognito tabs, so the redirect page would never run there. Firefox
+    // doesn't support "split" (and doesn't need it).
+    ...(browser !== 'firefox' && { incognito: 'split' as const }),
     ...(browser === 'firefox' && {
       browser_specific_settings: {
         gecko: {

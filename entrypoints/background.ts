@@ -7,7 +7,24 @@ import { buildUrl } from '@/lib/url';
 
 const ALARM = 'refresh-bangs';
 
-export type Message = { type: 'refresh' } | { type: 'rules' };
+export type Message = { type: 'refresh' } | { type: 'rules' } | { type: 'seed' } | { type: 'resolve'; trigger: string };
+
+function handle(msg: Message): Promise<unknown> | null {
+  switch (msg.type) {
+    case 'refresh':
+      return refresh(true);
+    case 'rules':
+      return registerRules().then(() => ({ ok: true }));
+    case 'seed':
+      // Fill an empty cache (e.g. a new Chrome incognito session) in the background.
+      return getIndex().then(() => ({ ok: true }));
+    case 'resolve':
+      // Lookup on behalf of pages without IndexedDB (Firefox private windows).
+      return getIndex().then(({ map }) => map.get(msg.trigger) ?? null);
+    default:
+      return null;
+  }
+}
 
 export default defineBackground(() => {
   browser.runtime.onInstalled.addListener(async () => {
@@ -24,7 +41,7 @@ export default defineBackground(() => {
 
   // sendResponse + `return true` (not a returned Promise) for older Chrome.
   browser.runtime.onMessage.addListener((msg: Message, _sender, sendResponse) => {
-    const work = msg.type === 'refresh' ? refresh(true) : msg.type === 'rules' ? registerRules().then(() => ({ ok: true })) : null;
+    const work = handle(msg);
     if (!work) return false;
     work.then(sendResponse, (err) => sendResponse({ status: 'error', error: String(err) }));
     return true;
